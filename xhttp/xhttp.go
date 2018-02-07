@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"bitbucket.org/unchain/pkg/xerrors"
+	"github.com/unchainio/pkg/xerrors"
 )
 
 func WriteAsJSON(w io.Writer, obj interface{}) {
