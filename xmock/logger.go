@@ -43,4 +43,3 @@ func (Logger) Warnln(v ...interface{}) {}
 func (Logger) Warningln(v ...interface{}) {}
 
 func (Logger) Errorln(v ...interface{}) {}
-
