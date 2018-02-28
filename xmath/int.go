@@ -1,6 +1,6 @@
 package xmath
 
-import "github.com/ethereum/go-ethereum/common/math"
+import "math"
 
 func MinInt(nums ...int) int {
 	min := math.MaxInt32
