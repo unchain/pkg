@@ -2,7 +2,6 @@ package xexec
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
@@ -46,7 +45,7 @@ func Run(command string, optFuncs ...OptionFunc) ([]byte, error) {
 		cmd.Dir = options.dir
 	}
 
-	log.Printf("Executing %s\n", command)
+	//log.Printf("Executing %s\n", command)
 
 	return run(cmd, options)
 }
