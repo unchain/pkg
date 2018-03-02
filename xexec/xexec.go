@@ -2,7 +2,6 @@ package xexec
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -12,13 +11,16 @@ import (
 	"bufio"
 	"bytes"
 
+	"io"
+
 	"github.com/pkg/errors"
 )
 
 type Options struct {
-	dir     string
-	args    []string
-	fmtArgs []interface{}
+	streamOutput bool
+	dir          string
+	args         []string
+	fmtArgs      []interface{}
 }
 
 type OptionFunc func(*Options)
@@ -46,7 +48,7 @@ func Run(command string, optFuncs ...OptionFunc) ([]byte, error) {
 
 	log.Printf("Executing %s\n", command)
 
-	return run(cmd)
+	return run(cmd, options)
 }
 
 func WithFormat(fmtArgs ...interface{}) OptionFunc {
@@ -67,17 +69,23 @@ func WithArgs(args ...string) OptionFunc {
 	}
 }
 
-func run(cmd *exec.Cmd) ([]byte, error) {
+func StreamOutput() OptionFunc {
+	return func(o *Options) {
+		o.streamOutput = true
+	}
+}
+
+func run(cmd *exec.Cmd, options *Options) ([]byte, error) {
 	// To fix a path issue caused by automatic path conversions in some windows shells, see https://github.com/docker/toolbox/issues/282
 	cmd.Env = getEnv()
 
-	stdout, err := cmd.StdoutPipe()
+	outPipe, err := cmd.StdoutPipe()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "")
 	}
 
-	stderr, err := cmd.StderrPipe()
+	errPipe, err := cmd.StderrPipe()
 
 	if err != nil {
 		return nil, errors.Wrap(err, "")
@@ -93,8 +101,12 @@ func run(cmd *exec.Cmd) ([]byte, error) {
 
 	out := bufio.NewWriter(&b)
 
-	go copyPipe(stdout, out, os.Stdout)
-	go copyPipe(stderr, os.Stderr)
+	if options.streamOutput {
+		go io.Copy(io.MultiWriter(out, os.Stdout), outPipe)
+		go io.Copy(os.Stderr, errPipe)
+	} else {
+		go io.Copy(out, outPipe)
+	}
 
 	err = cmd.Wait()
 
@@ -128,20 +140,4 @@ func getEnv() []string {
 		//`DOCKER_CERT_PATH=C:\Users\enikolov\.docker\machine\machines\default`,
 		//`NO_PROXY=192.168.99.100`,
 	)
-}
-
-func copyPipe(src io.ReadCloser, dsts ...io.Writer) {
-	var err error
-
-	buff := make([]byte, 100)
-
-	var n int
-	for err == nil {
-		n, err = src.Read(buff)
-		if n > 0 {
-			for _, dst := range dsts {
-				fmt.Fprintf(dst, "%s", string(buff[:n]))
-			}
-		}
-	}
 }
