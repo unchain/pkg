@@ -52,6 +52,13 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	return nil
 }
 
+func WithViper(v *viper.Viper) OptionFunc {
+	return func(o *Options) error {
+		o.viper = v
+		return nil
+	}
+}
+
 func FromPaths(paths ...string) OptionFunc {
 	return func(o *Options) error {
 		return MergeInConfigs(o.viper, paths)
