@@ -36,7 +36,11 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	}
 
 	for _, optFunc := range optFuncs {
-		warns = multierror.Append(warns, optFunc(opts))
+		warn := optFunc(opts)
+
+		if warn != nil {
+			warns = multierror.Append(warns)
+		}
 	}
 
 	err = opts.viper.Unmarshal(cfg)
@@ -46,7 +50,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	}
 
 	if warns != nil {
-		return errors.Wrapf(xerrors.ToWarn(warns), "failed to load configs from some sources")
+		return errors.WithMessage(xerrors.ToWarn(warns), "failed to load configs from some sources")
 	}
 
 	return nil
