@@ -41,9 +41,7 @@ func IsWarn(err error) bool {
 }
 
 func ToWarn(err error) error {
-	return errors.WithStack(
-		&warning{
-			error: err,
-		},
-	)
+	return &warning{
+		error: err,
+	}
 }

@@ -5,7 +5,7 @@ import (
 
 	"io"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -39,7 +39,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		warn := optFunc(opts)
 
 		if warn != nil {
-			warns = multierror.Append(warns)
+			warns = multierror.Append(warns, warn)
 		}
 	}
 
@@ -50,7 +50,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	}
 
 	if warns != nil {
-		return errors.WithMessage(xerrors.ToWarn(warns), "failed to load configs from some sources")
+		return xerrors.ToWarn(warns)
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader) error {
 	}
 
 	if errs != nil {
-		return errors.Wrap(xerrors.ToWarn(errs), "failed to load configs from some readers")
+		return errors.Wrap(errs, "failed to load configs from some readers")
 	}
 
 	return nil
@@ -137,7 +137,7 @@ func MergeInConfigs(v *viper.Viper, paths []string) error {
 	}
 
 	if errs != nil {
-		return errors.Wrap(xerrors.ToWarn(errs), "failed to load configs from some paths")
+		return errors.Wrap(errs, "failed to load configs from some paths")
 	}
 
 	return nil
