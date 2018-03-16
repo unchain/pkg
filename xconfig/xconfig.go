@@ -1,20 +1,16 @@
 package xconfig
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
-
 	"fmt"
 
 	"io"
 
 	multierror "github.com/hashicorp/go-multierror"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"github.com/unchainio/pkg/xerrors"
+	"github.com/unchainio/pkg/xpath"
 )
 
 func LoadConfig(cfg interface{}, path ...string) error {
@@ -86,6 +82,13 @@ func FromRemote(provider, endpoint, path string) OptionFunc {
 	}
 }
 
+func FromEnv() OptionFunc {
+	return func(o *Options) error {
+		o.viper.AutomaticEnv() // read in environment variables that match
+		return nil
+	}
+}
+
 // MergeInConfigs merges the viper configs found in several readers into a single one
 func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader) error {
 	var errs error
@@ -113,7 +116,7 @@ func MergeInConfigs(v *viper.Viper, paths []string) error {
 	var errs error
 
 	for _, path := range paths {
-		v.SetConfigFile(absPathify(path))
+		v.SetConfigFile(xpath.Abs(path))
 		err := v.MergeInConfig()
 
 		if err != nil {
@@ -127,33 +130,4 @@ func MergeInConfigs(v *viper.Viper, paths []string) error {
 	}
 
 	return nil
-}
-
-func absPathify(inPath string) string {
-	home, err := homedir.Dir()
-
-	if err != nil {
-		return ""
-	}
-
-	if strings.HasPrefix(inPath, "$HOME") {
-		inPath = home + inPath[5:]
-	}
-
-	if strings.HasPrefix(inPath, "$") {
-		end := strings.Index(inPath, string(os.PathSeparator))
-		inPath = os.Getenv(inPath[1:end]) + inPath[end:]
-	}
-
-	if filepath.IsAbs(inPath) {
-		return filepath.Clean(inPath)
-	}
-
-	p, err := filepath.Abs(inPath)
-
-	if err != nil {
-		return ""
-	}
-
-	return filepath.Clean(p)
 }

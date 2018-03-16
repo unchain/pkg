@@ -47,9 +47,3 @@ func ToWarn(err error) error {
 		},
 	)
 }
-
-type MultiError []error
-
-func (err *MultiError) Error() string {
-
-}
