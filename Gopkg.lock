@@ -39,18 +39,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/hashicorp/errwrap"
-  packages = ["."]
-  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/go-multierror"
-  packages = ["."]
-  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
-
-[[projects]]
-  branch = "master"
   name = "github.com/hashicorp/hcl"
   packages = [
     ".",
@@ -64,7 +52,7 @@
     "json/scanner",
     "json/token"
   ]
-  revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
+  revision = "f40e974e75af4e271d97ce0fc917af5898ae7bda"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -83,6 +71,12 @@
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+
+[[projects]]
+  name = "github.com/namsral/flag"
+  packages = ["."]
+  revision = "71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04"
+  version = "v1.7.4-pre"
 
 [[projects]]
   name = "github.com/pelletier/go-toml"
@@ -124,13 +118,13 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/spf13/viper"
   packages = [
     ".",
     "remote"
   ]
-  revision = "aafc9e6bc7b7bb53ddaa75a5ef49a17d6e654be5"
+  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
+  version = "v1.0.2"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -163,13 +157,13 @@
     "openpgp/s2k",
     "ssh/terminal"
   ]
-  revision = "b4956d363a8b14623cc81db401707679605930a3"
+  revision = "88942b9c40a4c9d203b82b3731787b672d6e809b"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "e0c57d8f86c17f0724497efcb3bc617e82834821"
+  revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
 
 [[projects]]
   branch = "master"
@@ -184,7 +178,7 @@
     "unix",
     "windows"
   ]
-  revision = "cc7307a45468e49eaf2997c890f14aa03a26917b"
+  revision = "13d03a9a82fba647c21a0ef8fba44a795d0f0835"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -202,12 +196,12 @@
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
-  version = "v2.1.1"
+  revision = "86f5ed62f8a0ee96bd888d2efdfd6d4fb100a4eb"
+  version = "v2.2.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "deeb0edc62524edb7675a3f43e5c77fdc6cfeeb287934c2dbc519ff1b78e79d9"
+  inputs-digest = "29bb56ed75c9f5b78f1b45a7b8b3c267f0dade2510a5a97f86105e479a0b690f"
   solver-name = "gps-cdcl"
   solver-version = 1

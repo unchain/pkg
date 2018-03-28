@@ -22,6 +22,14 @@ func ExitIfError(err error) {
 	}
 }
 
+type Warn interface {
+	Warn() string
+}
+
+type Info interface {
+	Info() string
+}
+
 type warning struct {
 	error
 }

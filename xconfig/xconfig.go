@@ -2,14 +2,13 @@ package xconfig
 
 import (
 	"fmt"
-
 	"io"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/namsral/flag"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
-	"github.com/unchainio/pkg/xerrors"
+	"github.com/unchainio/pkg/xlogger"
 	"github.com/unchainio/pkg/xpath"
 )
 
@@ -18,6 +17,18 @@ func LoadConfig(cfg interface{}, path ...string) error {
 }
 
 type Options struct {
+	verbose bool
+
+	pathFlag *flag.Flag
+	paths    []string
+
+	cfgType string
+	readers []io.Reader
+
+	remote *remoteConfig
+
+	automaticEnv bool
+
 	viper *viper.Viper
 }
 
@@ -29,31 +40,93 @@ type OptionFunc func(*Options) error
 
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	var err error
-	var warns error
-
-	opts := &Options{
-		viper: viper.New(),
-	}
+	opts := &Options{}
 
 	for _, optFunc := range optFuncs {
-		warn := optFunc(opts)
+		err = optFunc(opts)
 
-		if warn != nil {
-			warns = multierror.Append(warns, warn)
+		if err != nil {
+			return err
 		}
+	}
+
+	if opts.viper == nil {
+		opts.viper = viper.New()
+	}
+
+	if opts.pathFlag != nil {
+		cfgPath := ""
+		flag.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
+		flag.Parse()
+
+		if cfgPath != "" {
+			opts.paths = []string{cfgPath}
+		}
+	}
+
+	var log *xlogger.Logger
+
+	if opts.verbose {
+		log, err = xlogger.New(&xlogger.Config{
+			Level:  "info",
+			Format: "text",
+		})
+	} else {
+		log, err = xlogger.New(&xlogger.Config{
+			Level: "panic",
+		})
+	}
+
+	log.Printf("Loading config from %+v", opts.paths)
+
+	if len(opts.paths) != 0 {
+		err = MergeInConfigs(opts.viper, opts.paths, log)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if opts.cfgType != "" && len(opts.readers) != 0 {
+		err = MergeInReaders(opts.viper, opts.cfgType, opts.readers, log)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if opts.remote != nil {
+		err = opts.viper.AddRemoteProvider(opts.remote.provider, opts.remote.endpoint, opts.remote.path)
+
+		if err != nil {
+			return errors.Wrapf(err, "failed to connect to remote config provider")
+		}
+
+		err = opts.viper.ReadRemoteConfig()
+
+		if err != nil {
+			return errors.Wrapf(err, "failed to load config from remote provider")
+		}
+	}
+
+	if opts.automaticEnv {
+		opts.viper.AutomaticEnv()
 	}
 
 	err = opts.viper.Unmarshal(cfg)
 
 	if err != nil {
-		return multierror.Append(warns, errors.Wrapf(err, "failed to unmarshal config files"))
-	}
-
-	if warns != nil {
-		return xerrors.ToWarn(warns)
+		return errors.Wrapf(err, "failed to unmarshal config files")
 	}
 
 	return nil
+}
+
+func Verbose(flag bool) OptionFunc {
+	return func(o *Options) error {
+		o.verbose = flag
+		return nil
+	}
 }
 
 func WithViper(v *viper.Viper) OptionFunc {
@@ -63,30 +136,51 @@ func WithViper(v *viper.Viper) OptionFunc {
 	}
 }
 
+func FromPathFlag(name string, defValue string) OptionFunc {
+	return func(o *Options) error {
+		if len(o.paths) != 0 {
+			return errors.New("FromPathFlag and FromPaths are incompatible")
+		}
+
+		usage := fmt.Sprintf("Path to the config file, defaults to %s.", defValue)
+
+		o.pathFlag = &flag.Flag{
+			Name:     name,
+			DefValue: defValue,
+			Usage:    usage,
+		}
+
+		return nil
+	}
+}
+
 func FromPaths(paths ...string) OptionFunc {
 	return func(o *Options) error {
-		return MergeInConfigs(o.viper, paths)
+		if o.pathFlag != nil {
+			return errors.New("FromPathFlag and FromPaths are incompatible")
+		}
+
+		o.paths = paths
+
+		return nil
 	}
 }
 
 func FromReaders(cfgType string, readers ...io.Reader) OptionFunc {
 	return func(o *Options) error {
-		return MergeInReaders(o.viper, cfgType, readers)
+		o.cfgType = cfgType
+		o.readers = readers
+
+		return nil
 	}
 }
 
 func FromRemote(provider, endpoint, path string) OptionFunc {
 	return func(o *Options) error {
-		err := o.viper.AddRemoteProvider(provider, endpoint, path)
-
-		if err != nil {
-			return errors.Wrapf(err, "failed to connect to remote config provider")
-		}
-
-		err = o.viper.ReadRemoteConfig()
-
-		if err != nil {
-			return errors.Wrapf(err, "failed to load config from remote provider")
+		o.remote = &remoteConfig{
+			provider: provider,
+			endpoint: endpoint,
+			path:     path,
 		}
 
 		return nil
@@ -95,49 +189,36 @@ func FromRemote(provider, endpoint, path string) OptionFunc {
 
 func FromEnv() OptionFunc {
 	return func(o *Options) error {
-		o.viper.AutomaticEnv() // read in environment variables that match
+		o.automaticEnv = true
+
 		return nil
 	}
 }
 
-// MergeInConfigs merges the viper configs found in several readers into a single one
-func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader) error {
-	var errs error
+// MergeInConfigs merges the viper configs found in several paths into a single one
+func MergeInConfigs(v *viper.Viper, paths []string, log *xlogger.Logger) error {
+	for _, path := range paths {
+		v.SetConfigFile(xpath.Abs(path))
+		err := v.MergeInConfig()
 
+		if err != nil {
+			log.Warnf("failed to load config from path: `%s`, error was: %+v", path, err)
+		}
+	}
+
+	return nil
+}
+
+// MergeInConfigs merges the viper configs found in several readers into a single one
+func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader, log *xlogger.Logger) error {
 	v.SetConfigType(cfgType)
 
 	for i, reader := range readers {
 		err := v.MergeConfig(reader)
 
 		if err != nil {
-			msg := fmt.Sprintf("failed to load config from reader with index: `%d`", i)
-			errs = multierror.Append(errs, errors.WithMessage(err, msg))
+			log.Warnf("failed to load config from reader with index: `%d`, error was: %+v", i, err)
 		}
-	}
-
-	if errs != nil {
-		return errors.Wrap(errs, "failed to load configs from some readers")
-	}
-
-	return nil
-}
-
-// MergeInConfigs merges the viper configs found in several paths into a single one
-func MergeInConfigs(v *viper.Viper, paths []string) error {
-	var errs error
-
-	for _, path := range paths {
-		v.SetConfigFile(xpath.Abs(path))
-		err := v.MergeInConfig()
-
-		if err != nil {
-			msg := fmt.Sprintf("failed to load config from path: `%s`", path)
-			errs = multierror.Append(errs, errors.WithMessage(err, msg))
-		}
-	}
-
-	if errs != nil {
-		return errors.Wrap(errs, "failed to load configs from some paths")
 	}
 
 	return nil
