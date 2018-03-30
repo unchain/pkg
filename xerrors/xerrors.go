@@ -5,7 +5,10 @@ import (
 	"log"
 	"os"
 
+	"net/http"
+
 	"github.com/pkg/errors"
+	"github.com/unchainio/interfaces/logger"
 )
 
 func PanicIfError(err error) {
@@ -19,6 +22,15 @@ func ExitIfError(err error) {
 	if err != nil {
 		log.Printf("%+v\n", err)
 		os.Exit(-1)
+	}
+}
+
+func HTTPError(log logger.Logger, w http.ResponseWriter, err error) {
+	if err != nil {
+		log.Errorf("HTTP Error: %+v\n", err)
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
 	}
 }
 
