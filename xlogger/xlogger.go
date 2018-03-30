@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 )
 
@@ -16,21 +17,29 @@ type Config struct {
 }
 
 type Logger struct {
-	LogLevel string
-	log      *logrus.Logger
-	errLog   *logrus.Logger
-	cfg      *Config
+	log    *logrus.Logger
+	errLog *logrus.Logger
+	cfg    *Config
 }
 
-func New(cfg *Config) (*Logger, error) {
-	if cfg.Level == "" {
-		cfg.Level = "debug"
+var defaultConfig = &Config{
+	Level:  "debug",
+	Format: "text",
+}
+
+func New(input *Config) (*Logger, error) {
+	cfg := defaultConfig
+
+	err := mergo.Merge(cfg, input)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to merge with default config.")
 	}
 
 	logLevel, err := logrus.ParseLevel(cfg.Level)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Unsupported log level")
+		return nil, errors.Wrap(err, "unsupported log level")
 	}
 
 	var formatter logrus.Formatter
@@ -51,7 +60,6 @@ func New(cfg *Config) (*Logger, error) {
 	}
 
 	l := &Logger{
-		LogLevel: "",
 		log: &logrus.Logger{
 			Out:       os.Stdout,
 			Hooks:     make(logrus.LevelHooks),
