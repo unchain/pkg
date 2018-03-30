@@ -56,10 +56,10 @@ func (ie *IfErr) Panic(err error) {
 	}
 }
 
-func WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) {
-	Default.WriteHTTP(err, w, codeArg...)
+func WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) bool {
+	return Default.WriteHTTP(err, w, codeArg...)
 }
-func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) {
+func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) bool {
 	if err != nil {
 		code := http.StatusInternalServerError
 
@@ -70,5 +70,9 @@ func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) {
 		}
 
 		http.Error(w, http.StatusText(code), code)
+
+		return true
 	}
+
+	return false
 }
