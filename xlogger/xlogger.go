@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
+	"github.com/unchainio/pkg/xmerge"
 )
 
 type Config struct {
@@ -30,7 +30,7 @@ var defaultConfig = &Config{
 func New(input *Config) (*Logger, error) {
 	cfg := defaultConfig
 
-	err := mergo.Merge(cfg, input)
+	err := xmerge.Merge(cfg, input)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to merge with default config.")

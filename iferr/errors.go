@@ -14,7 +14,7 @@ var Default *IfErr
 func init() {
 	var err error
 
-	log, err := xlogger.New(&xlogger.Config{})
+	log, err := xlogger.New(nil)
 
 	if err != nil {
 		panic(err)
