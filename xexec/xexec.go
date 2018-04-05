@@ -20,6 +20,7 @@ type Options struct {
 	dir          string
 	args         []string
 	fmtArgs      []interface{}
+	host         string
 }
 
 type OptionFunc func(*Options)
@@ -45,6 +46,13 @@ func Run(command string, optFuncs ...OptionFunc) ([]byte, error) {
 		cmd.Dir = options.dir
 	}
 
+	if options.host != "" {
+		command = fmt.Sprintf(`
+ssh %s <<'ENDSSH'
+	%s	
+ENDSSH`, options.host, command)
+	}
+
 	//log.Printf("Executing %s\n", command)
 
 	return run(cmd, options)
@@ -53,6 +61,12 @@ func Run(command string, optFuncs ...OptionFunc) ([]byte, error) {
 func WithFormat(fmtArgs ...interface{}) OptionFunc {
 	return func(o *Options) {
 		o.fmtArgs = fmtArgs
+	}
+}
+
+func WithSSH(host string) OptionFunc {
+	return func(o *Options) {
+		o.host = host
 	}
 }
 
