@@ -40,12 +40,6 @@ func Run(command string, optFuncs ...OptionFunc) ([]byte, error) {
 		command += " " + strings.Join(options.args, " ")
 	}
 
-	cmd := exec.Command("sh", "-c", command)
-
-	if options.dir != "" {
-		cmd.Dir = options.dir
-	}
-
 	if options.host != "" {
 		command = fmt.Sprintf(`
 ssh %s <<'ENDSSH'
@@ -53,7 +47,13 @@ ssh %s <<'ENDSSH'
 ENDSSH`, options.host, command)
 	}
 
-	//log.Printf("Executing %s\n", command)
+	cmd := exec.Command("sh", "-c", command)
+
+	if options.dir != "" {
+		cmd.Dir = options.dir
+	}
+
+	//fmt.Printf("Executing %s\n", command)
 
 	return run(cmd, options)
 }
