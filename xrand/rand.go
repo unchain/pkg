@@ -1,33 +1,9 @@
-package xutil
+package xrand
 
 import (
 	"math/rand"
 	"time"
 )
-
-// MultiAppendString appends multiple string slices to a string slice
-func MultiAppendString(slice []string, elems ...[]string) []string {
-	for _, elem := range elems {
-		slice = append(slice, elem...)
-	}
-
-	return slice
-}
-
-// Flatten transforms a two dimensional slice to a single dimensional one
-func Flatten(strss [][]string) []string {
-	slice := make([]string, 10)
-
-	for _, strs := range strss {
-		slice = append(slice, strs...)
-		//
-		//for _, str := range strs {
-		//	slice = append(slice, str)
-		//}
-	}
-
-	return slice
-}
 
 var src = rand.NewSource(time.Now().UnixNano())
 
@@ -39,7 +15,7 @@ const (
 )
 
 // RandomString generates a random string with the specified length
-func RandomString(n int) string {
+func String(n int) string {
 	b := make([]byte, n)
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
@@ -58,7 +34,7 @@ func RandomString(n int) string {
 }
 
 // Utility to create random string of strlen length
-func RandomString2(n int) string {
+func String2(n int) string {
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 	result := make([]byte, n)
 	for i := 0; i < n; i++ {

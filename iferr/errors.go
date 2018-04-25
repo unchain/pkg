@@ -40,7 +40,7 @@ func (ie *IfErr) Warn(err error) {
 	}
 }
 
-func Exit(err error) { Default.Panic(err) }
+func Exit(err error) { Default.Exit(err) }
 func (ie *IfErr) Exit(err error) {
 	if err != nil {
 		ie.log.Errorf("%+v\n", err)
@@ -53,6 +53,17 @@ func (ie *IfErr) Panic(err error) {
 	if err != nil {
 		message := fmt.Sprintf("%+v\n", err)
 		panic(message)
+	}
+}
+
+type Fataler interface {
+	Fatalf(format string, args ...interface{})
+}
+
+func Fail(err error, f Fataler) { Default.Fail(err, f) }
+func (ie *IfErr) Fail(err error, f Fataler) {
+	if err != nil {
+		f.Fatalf("%+v\n", err)
 	}
 }
 

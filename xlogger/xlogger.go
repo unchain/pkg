@@ -83,7 +83,7 @@ func (l *Logger) Log(log *logrus.Logger) *logrus.Entry {
 		fName := runtime.FuncForPC(pc).Name()
 
 		currentDir, _ := os.Getwd()
-		file = strings.Replace(file, currentDir, "", -1)
+		file = strings.Replace(file, currentDir+"/", "", -1)
 
 		caller := fmt.Sprintf("%s:%v", file, line)
 
