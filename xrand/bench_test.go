@@ -2,6 +2,8 @@ package xrand_test
 
 import (
 	"testing"
+
+	"github.com/unchainio/pkg/xrand"
 )
 
 func BenchmarkRandomString(b *testing.B) {
