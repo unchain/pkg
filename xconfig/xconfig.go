@@ -12,32 +12,6 @@ import (
 	"github.com/unchainio/pkg/xpath"
 )
 
-func LoadConfig(cfg interface{}, path ...string) error {
-	return Load(cfg, FromPaths(path...))
-}
-
-type Options struct {
-	verbose bool
-
-	pathFlag *flag.Flag
-	paths    []string
-
-	cfgType string
-	readers []io.Reader
-
-	remote *remoteConfig
-
-	automaticEnv bool
-
-	viper *viper.Viper
-}
-
-type remoteConfig struct {
-	provider, endpoint, path string
-}
-
-type OptionFunc func(*Options) error
-
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	var err error
 	opts := &Options{}
@@ -120,6 +94,28 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	}
 
 	return nil
+}
+
+type OptionFunc func(*Options) error
+
+type Options struct {
+	verbose bool
+
+	pathFlag *flag.Flag
+	paths    []string
+
+	cfgType string
+	readers []io.Reader
+
+	remote *remoteConfig
+
+	automaticEnv bool
+
+	viper *viper.Viper
+}
+
+type remoteConfig struct {
+	provider, endpoint, path string
 }
 
 func Verbose(flag bool) OptionFunc {

@@ -60,8 +60,8 @@ type Fataler interface {
 	Fatalf(format string, args ...interface{})
 }
 
-func Fail(err error, f Fataler) { Default.Fail(err, f) }
-func (ie *IfErr) Fail(err error, f Fataler) {
+func Fail(f Fataler, err error) { Default.Fail(f, err) }
+func (ie *IfErr) Fail(f Fataler, err error) {
 	if err != nil {
 		f.Fatalf("%+v\n", err)
 	}
