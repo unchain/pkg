@@ -12,8 +12,9 @@ import (
 )
 
 type Config struct {
-	Level  string
-	Format string
+	Level     string
+	Format    string
+	HideFName bool
 }
 
 type Logger struct {
@@ -87,6 +88,9 @@ func (l *Logger) Log(log *logrus.Logger) *logrus.Entry {
 
 		caller := fmt.Sprintf("%s:%v", file, line)
 
+		if l.cfg.HideFName {
+			return log.WithField("caller", caller)
+		}
 		return log.WithField("caller", caller).WithField("fName", fName)
 	}
 	return &logrus.Entry{}
