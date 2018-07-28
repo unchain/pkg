@@ -10,14 +10,14 @@ func MultiAppendString(slice []string, elems ...[]string) []string {
 	for _, elem := range elems {
 		slice = append(slice, elem...)
 	}
-	
+
 	return slice
 }
 
 // Flatten transforms a two dimensional slice to a single dimensional one
 func Flatten(strss [][]string) []string {
 	slice := make([]string, 10)
-	
+
 	for _, strs := range strss {
 		slice = append(slice, strs...)
 		//
@@ -25,7 +25,7 @@ func Flatten(strss [][]string) []string {
 		//	slice = append(slice, str)
 		//}
 	}
-	
+
 	return slice
 }
 
@@ -53,6 +53,16 @@ func RandomString(n int) string {
 		cache >>= letterIdxBits
 		remain--
 	}
-	
+
 	return string(b)
+}
+
+// Utility to create random string of strlen length
+func RandomString2(n int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, n)
+	for i := 0; i < n; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }
