@@ -10,6 +10,8 @@ import (
 	_ "github.com/spf13/viper/remote"
 	"github.com/unchainio/pkg/xlogger"
 	"github.com/unchainio/pkg/xpath"
+	"github.com/fsnotify/fsnotify"
+	"os"
 )
 
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
@@ -49,6 +51,42 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		log, err = xlogger.New(&xlogger.Config{
 			Level: "panic",
 		})
+	}
+
+	if opts.watch {
+		if len(opts.paths) < 1 {
+			return errors.New("can only watch config changes when path flag is set")
+		}
+		go func() {
+			watcher, err := fsnotify.NewWatcher()
+			if err != nil {
+				panic(err)
+			}
+			defer watcher.Close()
+
+			dir, err := os.Getwd()
+
+			for _, path := range opts.paths {
+				done := make(chan bool)
+
+				go func() {
+					for {
+						select {
+						case event := <-watcher.Events:
+							if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
+								panic("CONFIG UPDATED - FORCING RESTART")
+							}
+						}
+					}
+				}()
+				err = watcher.Add(fmt.Sprintf(dir + "/" + path))
+				if err != nil {
+					panic(err)
+				}
+				<- done
+			}
+
+		}()
 	}
 
 	log.Printf("Loading config from %+v", opts.paths)
@@ -100,6 +138,7 @@ type OptionFunc func(*Options) error
 
 type Options struct {
 	verbose bool
+	watch bool
 
 	pathFlag *flag.Flag
 	paths    []string
@@ -121,6 +160,14 @@ type remoteConfig struct {
 func Verbose(flag bool) OptionFunc {
 	return func(o *Options) error {
 		o.verbose = flag
+		return nil
+	}
+}
+
+func WithWatcher() OptionFunc {
+	return func(o *Options) error {
+		o.watch = true
+
 		return nil
 	}
 }
