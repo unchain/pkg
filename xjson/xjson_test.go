@@ -1,15 +1,21 @@
 package xjson_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/unchainio/pkg/xjson"
-	"v/github.com/docker/docker@v0.0.0-20170524085120-eef6495eddab/pkg/testutil/assert"
 )
+
+type U struct {
+	C string
+	D string
+}
 
 type T struct {
 	A string
 	B string
+	U U
 }
 
 type TestCase struct {
@@ -35,11 +41,16 @@ func TestUnmarshal(t *testing.T) {
 			Whitelist: []string{"A", "B"},
 			Expected:  &T{A: "a", B: "b"},
 		},
+		{
+			Data:      []byte("{\"A\": \"a\", \"B\":\"b\", \"U\": {\"C\":\"c\", \"D\":\"d\"}}"),
+			Whitelist: []string{"A", "B", "U"},
+			Expected:  &T{A: "a", B: "b"},
+		},
 	}
 
 	for _, tc := range cases {
 		v := new(T)
 		xjson.Unmarshal(tc.Data, v, tc.Whitelist...)
-		assert.DeepEqual(t, v, tc.Expected)
+		reflect.DeepEqual(v, tc.Expected)
 	}
 }

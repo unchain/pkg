@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"io"
 
+	"os"
+
+	"github.com/fsnotify/fsnotify"
 	"github.com/namsral/flag"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"github.com/unchainio/pkg/xlogger"
 	"github.com/unchainio/pkg/xpath"
-	"github.com/fsnotify/fsnotify"
-	"os"
 )
 
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
@@ -34,6 +35,12 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		cfgPath := ""
 		flag.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
 		flag.Parse()
+
+		// TODO fix the issue with the flag package defining the --config flag by default and it clashing with user defined flags
+		//fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+		//
+		//fs.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
+		//fs.Parse(os.Args[1:])
 
 		if cfgPath != "" {
 			opts.paths = []string{cfgPath}
@@ -83,7 +90,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 				if err != nil {
 					panic(err)
 				}
-				<- done
+				<-done
 			}
 
 		}()
@@ -138,7 +145,7 @@ type OptionFunc func(*Options) error
 
 type Options struct {
 	verbose bool
-	watch bool
+	watch   bool
 
 	pathFlag *flag.Flag
 	paths    []string
