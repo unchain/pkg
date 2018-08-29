@@ -80,7 +80,7 @@ func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) boo
 			code = codeArg[0]
 		}
 
-		http.Error(w, http.StatusText(code), code)
+		http.Error(w, err.Error(), code)
 
 		return true
 	}

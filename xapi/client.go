@@ -113,6 +113,8 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 
 		return nil, err
 	}
+
+	//spew.Dump(resp.Body)
 	defer resp.Body.Close()
 
 	if c := resp.StatusCode; 200 > c || c > 299 {
