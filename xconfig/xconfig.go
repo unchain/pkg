@@ -1,19 +1,24 @@
 package xconfig
 
 import (
+	"flag"
 	"fmt"
 	"io"
-
 	"os"
+	"strings"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/namsral/flag"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
-	"github.com/unchainio/pkg/xlogger"
 	"github.com/unchainio/pkg/xpath"
 )
+
+type Info struct {
+	Paths []string
+}
 
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	var err error
@@ -27,37 +32,24 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		}
 	}
 
+	if opts.info == nil {
+		opts.info = new(Info)
+	}
+
 	if opts.viper == nil {
 		opts.viper = viper.New()
 	}
 
 	if opts.pathFlag != nil {
 		cfgPath := ""
-		flag.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
-		flag.Parse()
-
-		// TODO fix the issue with the flag package defining the --config flag by default and it clashing with user defined flags
-		//fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-		//
-		//fs.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
-		//fs.Parse(os.Args[1:])
+		fs := flag.NewFlagSet("", flag.ExitOnError)
+		fs.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
+		FlagsFromEnv(fs)
+		fs.Parse(os.Args)
 
 		if cfgPath != "" {
 			opts.paths = []string{cfgPath}
 		}
-	}
-
-	var log *xlogger.Logger
-
-	if opts.verbose {
-		log, err = xlogger.New(&xlogger.Config{
-			Level:  "info",
-			Format: "text",
-		})
-	} else {
-		log, err = xlogger.New(&xlogger.Config{
-			Level: "panic",
-		})
 	}
 
 	if opts.watch {
@@ -96,21 +88,23 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		}()
 	}
 
-	log.Printf("Loading config from %+v", opts.paths)
+	var errs error
 
 	if len(opts.paths) != 0 {
-		err = MergeInConfigs(opts.viper, opts.paths, log)
+		opts.info.Paths = opts.paths
+
+		err = MergeInConfigs(opts.viper, opts.paths)
 
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
 
 	if opts.cfgType != "" && len(opts.readers) != 0 {
-		err = MergeInReaders(opts.viper, opts.cfgType, opts.readers, log)
+		err = MergeInReaders(opts.viper, opts.cfgType, opts.readers)
 
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -118,13 +112,13 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		err = opts.viper.AddRemoteProvider(opts.remote.provider, opts.remote.endpoint, opts.remote.path)
 
 		if err != nil {
-			return errors.Wrapf(err, "failed to connect to remote config provider")
+			errs = multierror.Append(errs, errors.Wrapf(err, "failed to connect to remote config provider"))
 		}
 
 		err = opts.viper.ReadRemoteConfig()
 
 		if err != nil {
-			return errors.Wrapf(err, "failed to load config from remote provider")
+			errs = multierror.Append(errs, errors.Wrapf(err, "failed to load config from remote provider"))
 		}
 	}
 
@@ -135,7 +129,11 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	err = opts.viper.Unmarshal(cfg)
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshal config files")
+		errs = multierror.Append(errs, errors.Wrapf(err, "failed to unmarshal config files"))
+	}
+
+	if errs != nil {
+		return errs
 	}
 
 	return nil
@@ -144,8 +142,8 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 type OptionFunc func(*Options) error
 
 type Options struct {
-	verbose bool
-	watch   bool
+	info  *Info
+	watch bool
 
 	pathFlag *flag.Flag
 	paths    []string
@@ -164,9 +162,9 @@ type remoteConfig struct {
 	provider, endpoint, path string
 }
 
-func Verbose(flag bool) OptionFunc {
+func GetInfo(info *Info) OptionFunc {
 	return func(o *Options) error {
-		o.verbose = flag
+		o.info = info
 		return nil
 	}
 }
@@ -246,30 +244,62 @@ func FromEnv() OptionFunc {
 }
 
 // MergeInConfigs merges the viper configs found in several paths into a single one
-func MergeInConfigs(v *viper.Viper, paths []string, log *xlogger.Logger) error {
+func MergeInConfigs(v *viper.Viper, paths []string) error {
+	var errs error
+
 	for _, path := range paths {
 		v.SetConfigFile(xpath.Abs(path))
 		err := v.MergeInConfig()
 
 		if err != nil {
-			log.Warnf("failed to load config from path: `%s`, error was: %+v", path, err)
+			errs = multierror.Append(errs, errors.Wrapf(err, "failed to load config from path: `%s`", path))
 		}
+	}
+
+	if errs != nil {
+		return errs
 	}
 
 	return nil
 }
 
 // MergeInConfigs merges the viper configs found in several readers into a single one
-func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader, log *xlogger.Logger) error {
+func MergeInReaders(v *viper.Viper, cfgType string, readers []io.Reader) error {
+	var errs error
 	v.SetConfigType(cfgType)
 
 	for i, reader := range readers {
 		err := v.MergeConfig(reader)
 
 		if err != nil {
-			log.Warnf("failed to load config from reader with index: `%d`, error was: %+v", i, err)
+			errs = multierror.Append(errs, errors.Wrapf(err, "failed to load config from reader with index: `%d``", i))
 		}
 	}
 
+	if errs != nil {
+		return errs
+	}
+
 	return nil
+}
+
+func FlagsFromEnv(fs *flag.FlagSet) {
+	flags := map[string]struct{}{}
+	fs.Visit(func(f *flag.Flag) {
+		flags[f.Name] = struct{}{}
+	})
+
+	fs.VisitAll(func(f *flag.Flag) {
+		envVar := strings.ToUpper(f.Name)
+		envVar = strings.Replace(envVar, "-", "_", -1)
+		val := os.Getenv(envVar)
+
+		if val != "" {
+			if _, ok := flags[f.Name]; !ok {
+				fs.Set(f.Name, val)
+			}
+		}
+
+		f.Usage = fmt.Sprintf("%s [%s]", f.Usage, envVar)
+	})
 }

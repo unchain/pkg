@@ -56,6 +56,22 @@
   version = "v1.4.7"
 
 [[projects]]
+  digest = "1:0ade334594e69404d80d9d323445d2297ff8161637f9b2d347cc6973d2d6f05b"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8a6fb523712970c966eefc6b39ed2c5e74880354"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:f668349b83f7d779567c880550534addeca7ebadfdcf44b0b9c39be61864b4b7"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "886a7fbe3eb1c874d46f623bfa70af45f425b3d1"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:a361611b8c8c75a1091f00027767f7779b29cb37c456a71b8f2604c88057ab40"
   name = "github.com/hashicorp/hcl"
@@ -105,14 +121,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
-
-[[projects]]
-  digest = "1:6221a3a452964b1ff30efdc22209b124d54d04373e5993264d3fa9b13da0659d"
-  name = "github.com/namsral/flag"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04"
-  version = "v1.7.4-pre"
 
 [[projects]]
   digest = "1:7231124c9669dfb54b82ef8b89f2735cf5d5d2529a23c6ac93a8c4b8bbb28b28"
@@ -296,9 +304,9 @@
     "github.com/Sirupsen/logrus",
     "github.com/davecgh/go-spew/spew",
     "github.com/fsnotify/fsnotify",
+    "github.com/hashicorp/go-multierror",
     "github.com/imdario/mergo",
     "github.com/mitchellh/go-homedir",
-    "github.com/namsral/flag",
     "github.com/pkg/errors",
     "github.com/spf13/viper",
     "github.com/spf13/viper/remote",
