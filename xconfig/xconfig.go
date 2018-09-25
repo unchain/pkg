@@ -45,7 +45,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		fs := flag.NewFlagSet("", flag.ExitOnError)
 		fs.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
 		FlagsFromEnv(fs)
-		fs.Parse(os.Args)
+		fs.Parse(os.Args[1:])
 
 		if cfgPath != "" {
 			opts.paths = []string{cfgPath}
@@ -190,7 +190,7 @@ func FromPathFlag(name string, defValue string) OptionFunc {
 			return errors.New("FromPathFlag and FromPaths are incompatible")
 		}
 
-		usage := fmt.Sprintf("Path to the config file, defaults to %s.", defValue)
+		usage := fmt.Sprintf("Path to the config file")
 
 		o.pathFlag = &flag.Flag{
 			Name:     name,
