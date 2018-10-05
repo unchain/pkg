@@ -110,36 +110,39 @@ func run(cmd *exec.Cmd, options *Options) ([]byte, error) {
 		return nil, errors.Wrap(err, "")
 	}
 
-	var b bytes.Buffer
+	var outBuf bytes.Buffer
+	var errBuf bytes.Buffer
 
-	out := bufio.NewWriter(&b)
+	outW := bufio.NewWriter(&outBuf)
+	errW := bufio.NewWriter(&errBuf)
 
 	if options.streamOutput {
-		go io.Copy(io.MultiWriter(out, os.Stdout), outPipe)
-		go io.Copy(os.Stderr, errPipe)
+		go io.Copy(io.MultiWriter(outW, os.Stdout), outPipe)
+		go io.Copy(io.MultiWriter(errW, os.Stderr), errPipe)
 	} else {
-		go io.Copy(out, outPipe)
+		go io.Copy(outW, outPipe)
+		go io.Copy(errW, errPipe)
 	}
 
 	err = cmd.Wait()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "")
+		return nil, errors.Wrap(err, errBuf.String())
 	}
 
-	err = out.Flush()
+	err = outW.Flush()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "")
+		return nil, errors.Wrap(err, errBuf.String())
 	}
 
 	if !cmd.ProcessState.Success() {
 		//log.Printf("Failed to exec command\n")
-		return nil, errors.New("failed to exec command")
+		return nil, errors.Wrap(err, errBuf.String())
 	}
 
 	//log.Printf("Success\n")
-	return b.Bytes(), nil
+	return outBuf.Bytes(), nil
 }
 
 func getEnv() []string {
