@@ -1,6 +1,6 @@
 package iferr
 
-import (unchainio/pkg/pull/2
+import (
 	"fmt"
 	"net/http"
 	"os"
@@ -54,7 +54,7 @@ func (ie *IfErr) Panic(err error) {
 		message := fmt.Sprintf("%+v\n", err)
 		panic(message)
 	}
-}WriteHTTP
+}
 
 type Fataler interface {
 	Fatalf(format string, args ...interface{})
