@@ -1,6 +1,6 @@
 package iferr
 
-import (
+import (unchainio/pkg/pull/2
 	"fmt"
 	"net/http"
 	"os"
@@ -54,7 +54,7 @@ func (ie *IfErr) Panic(err error) {
 		message := fmt.Sprintf("%+v\n", err)
 		panic(message)
 	}
-}
+}WriteHTTP
 
 type Fataler interface {
 	Fatalf(format string, args ...interface{})
@@ -88,12 +88,15 @@ func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) boo
 	return false
 }
 
-type Opts struct {
+type ResponseOpts struct {
 	Code int
 	Message string
 }
 
-func (ie *IfErr) Respond(err error, w http.ResponseWriter, opts ...Opts) bool {
+func Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
+	return Default.Respond(err, w, opts ...)
+}
+func (ie *IfErr) Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
 	if err != nil {
 		code := http.StatusInternalServerError
 		message := err.Error()
