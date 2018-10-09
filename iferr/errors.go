@@ -87,3 +87,30 @@ func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) boo
 
 	return false
 }
+
+type ResponseOpts struct {
+	Code int
+	Message string
+}
+
+func Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
+	return Default.Respond(err, w, opts ...)
+}
+func (ie *IfErr) Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
+	if err != nil {
+		code := http.StatusInternalServerError
+		message := err.Error()
+		ie.log.Errorf("HTTP Error: %+v\n", err)
+		if len(opts) > 0 {
+			 if opts[0].Code > 0  {
+			 	code = opts[0].Code
+			 }
+			 if opts[0].Message != "" {
+			 	message = opts[0].Message
+			 }
+		}
+		http.Error(w, message, code)
+		return true
+	}
+	return false
+}
