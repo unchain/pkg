@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
@@ -94,7 +94,9 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 	defer resp.Body.Close()
 
 	if c := resp.StatusCode; 200 > c || c > 299 {
-		return resp, errors.New(resp.Status)
+		b, _ := ioutil.ReadAll(resp.Body)
+
+		return resp, errors.New(string(b))
 	}
 
 	if v != nil {
