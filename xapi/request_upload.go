@@ -49,7 +49,7 @@ func (c *Client) Upload(ctx context.Context, path string, readers map[string]io.
 		return nil, nil, nil, err
 	}
 
-	req.Header.Add("Content-Type", w.FormDataContentType())
+	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	res, err := c.Do(ctx, req, v)
 
