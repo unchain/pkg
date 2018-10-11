@@ -42,7 +42,8 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 
 	if opts.pathFlag != nil {
 		cfgPath := ""
-		fs := flag.NewFlagSet("", flag.ExitOnError)
+		//fs := flag.NewFlagSet("", flag.ExitOnError)
+		fs := flag.CommandLine
 		fs.StringVar(&cfgPath, opts.pathFlag.Name, opts.pathFlag.DefValue, opts.pathFlag.Usage)
 		FlagsFromEnv(fs)
 		fs.Parse(os.Args[1:])
