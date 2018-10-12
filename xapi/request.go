@@ -1,22 +1,21 @@
 package xapi
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
 // in which case it is resolved relative to the BaseURL of the Client.
 // Relative URLs should always be specified without a preceding slash. If
-// specified, the value pointed to by body is JSON encoded and included as the
+// specified, the value pointed to by body is encoded by the client's encoder and included as the
 // request body.
 func (c *Client) NewRequest(method, path string, body interface{}) (*http.Request, error) {
 	if !strings.HasSuffix(c.BaseURL.Path, "/") {
@@ -32,15 +31,10 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	if r, ok := body.(io.Reader); ok {
 		bodyReader = r
 	} else if body != nil {
-		buf := new(bytes.Buffer)
-		enc := json.NewEncoder(buf)
-		enc.SetEscapeHTML(false)
-		err := enc.Encode(body)
+		bodyReader, err = c.opts.encoder.Encode(body)
 		if err != nil {
 			return nil, err
 		}
-
-		bodyReader = buf
 	}
 
 	req, err := http.NewRequest(method, u.String(), bodyReader)
@@ -49,9 +43,9 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	}
 
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/"+c.opts.encoder.Type())
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/"+c.opts.encoder.Type())
 	if c.UserAgent != "" {
 		req.Header.Set("User-Agent", c.UserAgent)
 	}
@@ -103,7 +97,8 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 		if w, ok := v.(io.Writer); ok {
 			io.Copy(w, resp.Body)
 		} else {
-			decErr := json.NewDecoder(resp.Body).Decode(v)
+			decErr := c.opts.encoder.Decode(resp.Body, v)
+
 			if decErr == io.EOF {
 				decErr = nil // ignore EOF errors caused by empty response body
 			}

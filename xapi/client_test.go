@@ -48,7 +48,7 @@ func setup(tb testing.TB) (client *xapi.Client, mux *http.ServeMux, serverURL st
 
 	// client is the GitHub client being tested and is
 	// configured to use test server.
-	client, err := xapi.NewClient(server.URL+baseURLPath+"/", nil)
+	client, err := xapi.NewClient(server.URL + baseURLPath + "/")
 	assert.NoError(tb, err)
 
 	testURL, err := url.Parse(server.URL + baseURLPath + "/")
@@ -68,7 +68,7 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 func TestNewClient(t *testing.T) {
 	baseURL := "https://custom-url/"
 
-	c, err := xapi.NewClient(baseURL, nil)
+	c, err := xapi.NewClient(baseURL)
 	assert.NoError(t, err)
 
 	if got, want := c.BaseURL.String(), baseURL; got != want {
@@ -80,7 +80,7 @@ func TestBasicAuthTransport(t *testing.T) {
 	client, mux, serverURL, teardown := setup(t)
 	defer teardown()
 
-	username, password, otp := "u", "p", "123456"
+	username, password := "u", "p"
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		u, p, ok := r.BasicAuth()
@@ -98,9 +98,8 @@ func TestBasicAuthTransport(t *testing.T) {
 	tp := &xapi.BasicAuthTransport{
 		Username: username,
 		Password: password,
-		OTP:      otp,
 	}
-	basicAuthClient, err := xapi.NewClient(serverURL+baseURLPath+"/", tp.Client())
+	basicAuthClient, err := xapi.NewClient(serverURL+baseURLPath+"/", xapi.WithClient(tp.Client()))
 	assert.NoError(t, err)
 
 	basicAuthClient.BaseURL = client.BaseURL
@@ -125,7 +124,7 @@ func TestBasicAuthTransport_transport(t *testing.T) {
 }
 
 func TestNewRequest(t *testing.T) {
-	c, err := xapi.NewClient(baseURL, nil)
+	c, err := xapi.NewClient(baseURL)
 	assert.NoError(t, err)
 
 	inURL, outURL := "/foo", baseURL+"foo"
