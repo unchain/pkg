@@ -51,14 +51,10 @@ func (c *Client) Upload(ctx context.Context, path string, readers map[string]io.
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
-	res, err := c.Do(ctx, req, v)
+	res, cleanup, err := c.Do(ctx, req, v)
 
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	cleanup := func() {
-		res.Body.Close()
 	}
 
 	return req, res, cleanup, nil

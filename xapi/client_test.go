@@ -168,13 +168,15 @@ func TestDo(t *testing.T) {
 	assert.NoError(t, err)
 
 	body := new(foo)
-	_, err = client.Do(context.Background(), req, body)
+	_, cleanup, err := client.Do(context.Background(), req, body)
 	assert.NoError(t, err)
 
 	want := &foo{"a"}
 	if !reflect.DeepEqual(body, want) {
 		t.Errorf("Response body = %v, want %v", body, want)
 	}
+
+	cleanup()
 }
 
 func TestDo_httpError(t *testing.T) {
@@ -186,7 +188,7 @@ func TestDo_httpError(t *testing.T) {
 	})
 
 	req, _ := client.NewRequest("GET", ".", nil)
-	resp, err := client.Do(context.Background(), req, nil)
+	resp, cleanup, err := client.Do(context.Background(), req, nil)
 
 	if err == nil {
 		t.Fatal("Expected HTTP 400 error, got no error.")
@@ -194,6 +196,8 @@ func TestDo_httpError(t *testing.T) {
 	if resp.StatusCode != 400 {
 		t.Errorf("Expected HTTP 400 error, got %d status code.", resp.StatusCode)
 	}
+
+	cleanup()
 }
 
 // Test handling of an error caused by the internal http client's Do()
@@ -208,7 +212,7 @@ func TestDo_redirectLoop(t *testing.T) {
 	})
 
 	req, _ := client.NewRequest("GET", ".", nil)
-	_, err := client.Do(context.Background(), req, nil)
+	_, cleanup, err := client.Do(context.Background(), req, nil)
 
 	if err == nil {
 		t.Error("Expected error to be returned.")
@@ -216,6 +220,8 @@ func TestDo_redirectLoop(t *testing.T) {
 	if err, ok := err.(*url.Error); !ok {
 		t.Errorf("Expected a URL error; got %#v.", err)
 	}
+
+	cleanup()
 }
 
 func TestDo_noContent(t *testing.T) {
@@ -229,10 +235,12 @@ func TestDo_noContent(t *testing.T) {
 	var body json.RawMessage
 
 	req, _ := client.NewRequest("GET", ".", nil)
-	_, err := client.Do(context.Background(), req, &body)
+	_, cleanup, err := client.Do(context.Background(), req, &body)
 	if err != nil {
 		t.Fatalf("Do returned unexpected error: %v", err)
 	}
+
+	cleanup()
 }
 
 func TestSanitizeURL(t *testing.T) {

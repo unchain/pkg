@@ -2,7 +2,6 @@ package xapi
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,8 +18,9 @@ import (
 // request body.
 func (c *Client) NewRequest(method, path string, body interface{}) (*http.Request, error) {
 	if !strings.HasSuffix(c.BaseURL.Path, "/") {
-		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
+		c.BaseURL.Path += "/"
 	}
+
 	u, err := c.BaseURL.Parse(path)
 	if err != nil {
 		return nil, err
@@ -52,6 +52,8 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 	return req, nil
 }
 
+type CleanupFn func()
+
 // Do sends an API request and returns the API response. The API response is
 // JSON decoded and stored in the value pointed to by v, or returned as an
 // error if an API error has occurred. If v implements the io.Writer
@@ -60,8 +62,9 @@ func (c *Client) NewRequest(method, path string, body interface{}) (*http.Reques
 //
 // The provided ctx must be non-nil. If it is canceled or times out,
 // ctx.Err() will be returned.
-func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, error) {
+func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, CleanupFn, error) {
 	req = req.WithContext(ctx)
+
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -69,7 +72,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 		// the context's error is probably more useful.
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		default:
 		}
 
@@ -77,20 +80,22 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 		if e, ok := err.(*url.Error); ok {
 			if url, err := url.Parse(e.URL); err == nil {
 				e.URL = SanitizeURL(url).String()
-				return nil, e
+				return nil, nil, e
 			}
 		}
 
-		return nil, err
+		return nil, nil, err
 	}
 
-	//spew.Dump(resp.Body)
-	defer resp.Body.Close()
+	cleanup := func() {
+		resp.Body.Close()
+	}
 
 	if c := resp.StatusCode; 200 > c || c > 299 {
 		b, _ := ioutil.ReadAll(resp.Body)
+		cleanup()
 
-		return resp, errors.New(string(b))
+		return resp, nil, errors.New(string(b))
 	}
 
 	if v != nil {
@@ -108,7 +113,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 		}
 	}
 
-	return resp, err
+	return resp, cleanup, err
 }
 
 // SanitizeURL redacts the client_secret parameter from the URL which may be
@@ -132,14 +137,10 @@ func (c *Client) SimpleRequest(ctx context.Context, method string, path string, 
 		return nil, nil, nil, err
 	}
 
-	res, err := c.Do(ctx, req, output)
+	res, cleanup, err := c.Do(ctx, req, output)
 
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	cleanup := func() {
-		res.Body.Close()
 	}
 
 	return req, res, cleanup, nil
