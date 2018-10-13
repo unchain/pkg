@@ -3,7 +3,6 @@ package xapi
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"io"
 )
 
@@ -16,8 +15,10 @@ func NewJSONEncoder() *JSONEncoder {
 
 func (*JSONEncoder) Encode(body interface{}) (io.Reader, error) {
 	buf := new(bytes.Buffer)
-	enc := xml.NewEncoder(buf)
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
 	err := enc.Encode(body)
+
 	if err != nil {
 		return nil, err
 	}
