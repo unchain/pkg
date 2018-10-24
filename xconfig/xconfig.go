@@ -53,40 +53,8 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		}
 	}
 
-	if opts.watch {
-		if len(opts.paths) < 1 {
-			return errors.New("can only watch config changes when path flag is set")
-		}
-		go func() {
-			watcher, err := fsnotify.NewWatcher()
-			if err != nil {
-				panic(err)
-			}
-			defer watcher.Close()
-
-			dir, err := os.Getwd()
-
-			for _, path := range opts.paths {
-				done := make(chan bool)
-
-				go func() {
-					for {
-						select {
-						case event := <-watcher.Events:
-							if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
-								panic("CONFIG UPDATED - FORCING RESTART")
-							}
-						}
-					}
-				}()
-				err = watcher.Add(fmt.Sprintf(dir + "/" + path))
-				if err != nil {
-					panic(err)
-				}
-				<-done
-			}
-
-		}()
+	if opts.watchFn != nil {
+		opts.viper.OnConfigChange(opts.watchFn)
 	}
 
 	var errs error
@@ -143,9 +111,8 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 type OptionFunc func(*Options) error
 
 type Options struct {
-	info  *Info
-	watch bool
-
+	info     *Info
+	watchFn  func(in fsnotify.Event)
 	pathFlag *flag.Flag
 	paths    []string
 
@@ -170,9 +137,9 @@ func GetInfo(info *Info) OptionFunc {
 	}
 }
 
-func WithWatcher() OptionFunc {
+func WithWatcher(watchFn func(in fsnotify.Event)) OptionFunc {
 	return func(o *Options) error {
-		o.watch = true
+		o.watchFn = watchFn
 
 		return nil
 	}
