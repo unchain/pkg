@@ -30,7 +30,7 @@ func (c *Client) Upload(ctx context.Context, path string, readers map[string]io.
 				return nil, nil, nil, err
 			}
 		} else {
-			if fw, err = w.CreateFormField(key); err != nil {
+			if fw, err = w.CreateFormFile(key, key); err != nil {
 				closeFn(r)
 				return nil, nil, nil, err
 			}

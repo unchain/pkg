@@ -65,7 +65,6 @@ type CleanupFn func()
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*http.Response, CleanupFn, error) {
 	req = req.WithContext(ctx)
 
-
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		// If we got an error, and the context has been canceled,
@@ -95,7 +94,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 		b, _ := ioutil.ReadAll(resp.Body)
 		cleanup()
 
-		return resp, nil, errors.New(string(b))
+		return resp, nil, errors.Errorf("(%d) %s: %s", c, http.StatusText(c), string(b))
 	}
 
 	if v != nil {
