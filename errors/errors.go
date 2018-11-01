@@ -96,6 +96,11 @@ import (
 	"io"
 )
 
+type xerror interface {
+	Cause() error
+	Message() string
+}
+
 // New returns an error with the supplied message.
 // New also records the stack trace at the point it was called.
 func New(message string) error {
@@ -122,6 +127,10 @@ type fundamental struct {
 }
 
 func (f *fundamental) Error() string { return f.msg }
+
+func (f *fundamental) Message() string {
+	return f.msg
+}
 
 func (f *fundamental) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -154,6 +163,10 @@ func WithStack(err error) error {
 type withStack struct {
 	error
 	*stack
+}
+
+func (w *withStack) Message() string {
+	return ""
 }
 
 func (w *withStack) Cause() error { return w.error }
@@ -227,6 +240,9 @@ type withMessage struct {
 
 func (w *withMessage) Error() string { return w.msg + ": " + w.cause.Error() }
 func (w *withMessage) Cause() error  { return w.cause }
+func (w *withMessage) Message() string {
+	return w.msg
+}
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -240,6 +256,42 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 	case 's', 'q':
 		io.WriteString(s, w.Error())
 	}
+}
+
+func Message(err error, depthArg ...int) string {
+	depth := 0
+	if len(depthArg) > 0 {
+		depth = depthArg[0]
+	}
+
+	msg := ""
+
+	for ; err != nil; depth-- {
+
+		xerr, ok := err.(xerror)
+		if !ok {
+			msg += ": " + err.Error()
+			break
+		}
+
+		if xerr.Message() != "" {
+			msg += ": " + xerr.Message()
+		}
+
+		// If depth is less than 1, we keep going until we reach the root cause
+		// If depth is more than 1, we keep going until we reach depth 1
+		if depth == 1 {
+			break
+		}
+
+		err = xerr.Cause()
+	}
+
+	if msg != "" {
+		msg = "error" + msg
+	}
+
+	return msg
 }
 
 // Cause returns the underlying cause of the error, if possible.

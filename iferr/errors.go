@@ -5,7 +5,11 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/unchainio/pkg/xmerge"
+
 	"github.com/unchainio/interfaces/logger"
+
+	"github.com/unchainio/pkg/errors"
 	"github.com/unchainio/pkg/xlogger"
 )
 
@@ -89,28 +93,44 @@ func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) boo
 }
 
 type ResponseOpts struct {
-	Code int
+	Code    int
 	Message string
+	Verbose bool
+	Depth   int
 }
 
-func Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
-	return Default.Respond(err, w, opts ...)
+func Respond(w http.ResponseWriter, err error, opts ...*ResponseOpts) bool {
+	return Default.Respond(w, err, opts...)
 }
-func (ie *IfErr) Respond(err error, w http.ResponseWriter, opts ...*ResponseOpts) bool {
-	if err != nil {
-		code := http.StatusInternalServerError
-		message := err.Error()
-		ie.log.Errorf("HTTP Error: %+v\n", err)
-		if len(opts) > 0 {
-			 if opts[0].Code > 0  {
-			 	code = opts[0].Code
-			 }
-			 if opts[0].Message != "" {
-			 	message = opts[0].Message
-			 }
-		}
-		http.Error(w, message, code)
-		return true
+func (ie *IfErr) Respond(w http.ResponseWriter, err error, opts ...*ResponseOpts) bool {
+	if err == nil {
+		return false
 	}
-	return false
+
+	opt := &ResponseOpts{
+		Code:    http.StatusInternalServerError,
+		Verbose: true,
+	}
+
+	if len(opts) > 0 {
+		err := xmerge.Merge(opt, opts[0])
+		ie.Warn(err)
+	}
+
+	if opt.Message == "" {
+		opt.Message = errors.Message(err, opt.Depth)
+	}
+
+	if opt.Message == "" {
+		opt.Message = err.Error()
+	}
+
+	if opt.Verbose {
+		ie.log.Errorf("HTTP Error: %+v\n", err)
+	} else {
+		ie.log.Errorf("HTTP Error: %v\n", err)
+	}
+
+	http.Error(w, opt.Message, opt.Code)
+	return true
 }
