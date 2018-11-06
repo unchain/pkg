@@ -35,12 +35,12 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	toml "github.com/burntsushi/toml"
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/printer"
 	"github.com/magiconair/properties"
 	"github.com/mitchellh/mapstructure"
-	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
@@ -202,6 +202,7 @@ type Viper struct {
 	properties *properties.Properties
 
 	onConfigChange func(fsnotify.Event)
+	caseSensitive  bool
 }
 
 // New returns an initialized Viper instance.
@@ -218,6 +219,7 @@ func New() *Viper {
 	v.env = make(map[string]string)
 	v.aliases = make(map[string]string)
 	v.typeByDefValue = false
+	v.caseSensitive = false
 
 	return v
 }
@@ -274,6 +276,13 @@ var SupportedRemoteProviders = []string{"etcd", "consul"}
 func OnConfigChange(run func(in fsnotify.Event)) { v.OnConfigChange(run) }
 func (v *Viper) OnConfigChange(run func(in fsnotify.Event)) {
 	v.onConfigChange = run
+}
+
+func SetCaseSensitive(flag bool) {
+	v.SetCaseSensitive(flag)
+}
+func (v *Viper) SetCaseSensitive(flag bool) {
+	v.caseSensitive = flag
 }
 
 func WatchConfig() { v.WatchConfig() }
@@ -1352,13 +1361,9 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 		}
 
 	case "toml":
-		tree, err := toml.LoadReader(buf)
+		_, err := toml.DecodeReader(buf, &c)
 		if err != nil {
 			return ConfigParseError{err}
-		}
-		tmap := tree.ToMap()
-		for k, v := range tmap {
-			c[k] = v
 		}
 
 	case "properties", "props", "prop":
@@ -1376,6 +1381,10 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 			// set innermost value
 			deepestMap[lastKey] = value
 		}
+	}
+
+	if v.caseSensitive {
+		return nil
 	}
 
 	insensitiviseMap(c)
@@ -1427,12 +1436,8 @@ func (v *Viper) marshalWriter(f afero.File, configType string) error {
 		}
 
 	case "toml":
-		t, err := toml.TreeFromMap(c)
+		err := toml.NewEncoder(f).Encode(c)
 		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		s := t.String()
-		if _, err := f.WriteString(s); err != nil {
 			return ConfigMarshalError{err}
 		}
 
@@ -1561,6 +1566,10 @@ func (v *Viper) WatchRemoteConfigOnChannel() error {
 }
 
 func (v *Viper) insensitiviseMaps() {
+	if v.caseSensitive {
+		return
+	}
+
 	insensitiviseMap(v.config)
 	insensitiviseMap(v.defaults)
 	insensitiviseMap(v.override)

@@ -145,6 +145,13 @@ func WithWatcher(watchFn func(in fsnotify.Event)) OptionFunc {
 	}
 }
 
+func CaseSensitive(flag bool) OptionFunc {
+	return func(o *Options) error {
+		o.viper.SetCaseSensitive(flag)
+		return nil
+	}
+}
+
 func WithViper(v *viper.Viper) OptionFunc {
 	return func(o *Options) error {
 		o.viper = v

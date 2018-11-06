@@ -1,6 +1,8 @@
 package xapi
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // Transport is an http.RoundTripper that adds the specified headers to all requests
 type Transport struct {
@@ -26,8 +28,10 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		req2.Header[k] = append([]string(nil), s...)
 	}
 
-	for k, v := range t.Headers {
-		req2.Header.Set(k, v)
+	if t.Headers != nil {
+		for k, v := range t.Headers {
+			req2.Header.Set(k, v)
+		}
 	}
 
 	return t.GetTransport().RoundTrip(req2)
