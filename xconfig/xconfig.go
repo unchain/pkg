@@ -40,6 +40,10 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		opts.viper = viper.New()
 	}
 
+	if opts.caseSensitive {
+		opts.viper.SetCaseSensitive(opts.caseSensitive)
+	}
+
 	if opts.pathFlag != nil {
 		cfgPath := ""
 		//fs := flag.NewFlagSet("", flag.ExitOnError)
@@ -121,7 +125,8 @@ type Options struct {
 
 	remote *remoteConfig
 
-	automaticEnv bool
+	automaticEnv  bool
+	caseSensitive bool
 
 	viper *viper.Viper
 }
@@ -147,7 +152,7 @@ func WithWatcher(watchFn func(in fsnotify.Event)) OptionFunc {
 
 func CaseSensitive(flag bool) OptionFunc {
 	return func(o *Options) error {
-		o.viper.SetCaseSensitive(flag)
+		o.caseSensitive = flag
 		return nil
 	}
 }
