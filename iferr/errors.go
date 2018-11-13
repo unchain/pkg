@@ -19,7 +19,15 @@ var Default *IfErr
 func init() {
 	var err error
 
-	Default, err = New()
+	log, err := xlogger.New(&xlogger.Config{
+		CallerDepth: 4,
+	})
+
+	if err != nil {
+		fmt.Printf("Failed to initialize the default IfErr %+v\n", err)
+	}
+
+	Default, err = New(WithLogger(log))
 
 	if err != nil {
 		fmt.Printf("Failed to initialize the default IfErr %+v\n", err)
