@@ -24,14 +24,12 @@ type Logger struct {
 	cfg    *Config
 }
 
-var defaultConfig = &Config{
-	Level:       "debug",
-	Format:      "text",
-	CallerDepth: 2,
-}
-
 func New(inputCfg *Config) (*Logger, error) {
-	cfg := defaultConfig
+	cfg := &Config{
+		Level:       "debug",
+		Format:      "text",
+		CallerDepth: 2,
+	}
 
 	err := xmerge.Merge(cfg, inputCfg)
 
