@@ -58,7 +58,8 @@ func Test1(t *testing.T) {
 		},
 	}
 
-	iferr := iferr.New(&xlogger.Mock{})
+	iferr, err := iferr.New(iferr.WithLogger(&xlogger.Mock{}))
+	require.NoError(t, err)
 
 	for _, tc := range tcs {
 		w := httptest.NewRecorder()

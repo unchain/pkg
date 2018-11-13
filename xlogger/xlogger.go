@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	Level     string
-	Format    string
-	HideFName bool
+	Level       string
+	Format      string
+	HideFName   bool
+	CallerDepth int
 }
 
 type Logger struct {
@@ -24,8 +25,9 @@ type Logger struct {
 }
 
 var defaultConfig = &Config{
-	Level:  "debug",
-	Format: "text",
+	Level:       "debug",
+	Format:      "text",
+	CallerDepth: 2,
 }
 
 func New(inputCfg *Config) (*Logger, error) {
@@ -80,7 +82,7 @@ func New(inputCfg *Config) (*Logger, error) {
 }
 
 func (l *Logger) Log(log *logrus.Logger) *logrus.Entry {
-	if pc, file, line, ok := runtime.Caller(2); ok {
+	if pc, file, line, ok := runtime.Caller(l.cfg.CallerDepth); ok {
 		fName := runtime.FuncForPC(pc).Name()
 
 		currentDir, _ := os.Getwd()

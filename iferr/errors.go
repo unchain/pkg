@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/unchainio/pkg/xlogger"
+
 	"github.com/unchainio/pkg/xmerge"
 
 	"github.com/unchainio/interfaces/logger"
 
 	"github.com/unchainio/pkg/errors"
-	"github.com/unchainio/pkg/xlogger"
 )
 
 var Default *IfErr
@@ -18,36 +19,84 @@ var Default *IfErr
 func init() {
 	var err error
 
-	log, err := xlogger.New(nil)
+	Default, err = New()
 
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to initialize the default IfErr %+v\n", err)
 	}
-
-	Default = New(log)
 }
 
 type IfErr struct {
-	log logger.Logger
+	*Options
 }
 
-func New(log logger.Logger) *IfErr {
+type Options struct {
+	Log     logger.Logger
+	Verbose *bool
+}
+
+type OptionFunc func(*Options)
+
+func New(optFns ...OptionFunc) (*IfErr, error) {
+	opts := &Options{}
+
+	for _, optFn := range optFns {
+		optFn(opts)
+	}
+
+	if opts.Verbose == nil {
+		true := true
+		opts.Verbose = &true
+	}
+
+	if opts.Log == nil {
+		log, err := xlogger.New(&xlogger.Config{
+			CallerDepth: 3,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		opts.Log = log
+	}
+
 	return &IfErr{
-		log: log,
+		Options: opts,
+	}, nil
+}
+
+func WithLogger(log logger.Logger) OptionFunc {
+	return func(o *Options) {
+		o.Log = log
+	}
+}
+
+func Verbose(flag bool) OptionFunc {
+	return func(o *Options) {
+		o.Verbose = &flag
 	}
 }
 
 func Warn(err error) { Default.Warn(err) }
 func (ie *IfErr) Warn(err error) {
 	if err != nil {
-		ie.log.Warnf("%+v\n", err)
+		if *ie.Verbose {
+			ie.Log.Warnf("%+v\n", err)
+		} else {
+			ie.Log.Warnf("%v\n", err)
+		}
 	}
 }
 
 func Exit(err error) { Default.Exit(err) }
 func (ie *IfErr) Exit(err error) {
 	if err != nil {
-		ie.log.Errorf("%+v\n", err)
+		if *ie.Verbose {
+			ie.Log.Errorf("%+v\n", err)
+		} else {
+			ie.Log.Errorf("%v\n", err)
+		}
 		os.Exit(-1)
 	}
 }
@@ -55,7 +104,14 @@ func (ie *IfErr) Exit(err error) {
 func Panic(err error) { Default.Panic(err) }
 func (ie *IfErr) Panic(err error) {
 	if err != nil {
-		message := fmt.Sprintf("%+v\n", err)
+		var message string
+
+		if *ie.Verbose {
+			message = fmt.Sprintf("%+v\n", err)
+		} else {
+			message = fmt.Sprintf("%v\n", err)
+		}
+
 		panic(message)
 	}
 }
@@ -71,31 +127,9 @@ func (ie *IfErr) Fail(f Fataler, err error) {
 	}
 }
 
-func WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) bool {
-	return Default.WriteHTTP(err, w, codeArg...)
-}
-func (ie *IfErr) WriteHTTP(err error, w http.ResponseWriter, codeArg ...int) bool {
-	if err != nil {
-		code := http.StatusInternalServerError
-
-		ie.log.Errorf("HTTP Error: %+v\n", err)
-
-		if len(codeArg) != 0 {
-			code = codeArg[0]
-		}
-
-		http.Error(w, err.Error(), code)
-
-		return true
-	}
-
-	return false
-}
-
 type ResponseOpts struct {
 	Code    int
 	Message string
-	Verbose bool
 	Depth   int
 }
 
@@ -108,8 +142,7 @@ func (ie *IfErr) Respond(w http.ResponseWriter, err error, opts ...*ResponseOpts
 	}
 
 	opt := &ResponseOpts{
-		Code:    http.StatusInternalServerError,
-		Verbose: true,
+		Code: http.StatusInternalServerError,
 	}
 
 	if len(opts) > 0 {
@@ -125,10 +158,10 @@ func (ie *IfErr) Respond(w http.ResponseWriter, err error, opts ...*ResponseOpts
 		opt.Message = err.Error()
 	}
 
-	if opt.Verbose {
-		ie.log.Errorf("HTTP Error: %+v\n", err)
+	if *ie.Verbose {
+		ie.Log.Errorf("HTTP Error: %+v\n", err)
 	} else {
-		ie.log.Errorf("HTTP Error: %v\n", err)
+		ie.Log.Errorf("HTTP Error: %v\n", err)
 	}
 
 	http.Error(w, opt.Message, opt.Code)
