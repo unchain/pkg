@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/unchainio/pkg/errors"
 )
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
@@ -83,7 +83,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 			}
 		}
 
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "")
 	}
 
 	cleanup := func() {
@@ -107,7 +107,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*htt
 				decErr = nil // ignore EOF errors caused by empty response body
 			}
 			if decErr != nil {
-				err = decErr
+				err = errors.Wrap(decErr, "")
 			}
 		}
 	}
