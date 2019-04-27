@@ -99,6 +99,15 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		opts.viper.AutomaticEnv()
 	}
 
+	if opts.expandEnv {
+		for _, k := range opts.viper.AllKeys() {
+			value := opts.viper.Get(k)
+			if _, ok := value.(string); ok {
+				opts.viper.Set(k, os.ExpandEnv(opts.viper.GetString(k)))
+			}
+		}
+	}
+
 	err = opts.viper.Unmarshal(cfg)
 
 	if err != nil {
@@ -115,10 +124,11 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 type OptionFunc func(*Options) error
 
 type Options struct {
-	info     *Info
-	watchFn  func(in fsnotify.Event)
-	pathFlag *flag.Flag
-	paths    []string
+	expandEnv bool
+	info      *Info
+	watchFn   func(in fsnotify.Event)
+	pathFlag  *flag.Flag
+	paths     []string
 
 	cfgType string
 	readers []io.Reader
@@ -133,6 +143,13 @@ type Options struct {
 
 type remoteConfig struct {
 	provider, endpoint, path string
+}
+
+func ExpandEnv() OptionFunc {
+	return func(o *Options) error {
+		o.expandEnv = true
+		return nil
+	}
 }
 
 func GetInfo(info *Info) OptionFunc {
