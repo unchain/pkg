@@ -96,11 +96,6 @@ import (
 	"io"
 )
 
-type xerror interface {
-	Cause() error
-	Message() string
-}
-
 // New returns an error with the supplied message.
 // New also records the stack trace at the point it was called.
 func New(message string) error {
@@ -163,10 +158,6 @@ func WithStack(err error) error {
 type withStack struct {
 	error
 	*stack
-}
-
-func (w *withStack) Message() string {
-	return ""
 }
 
 func (w *withStack) Cause() error { return w.error }
@@ -259,6 +250,14 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 }
 
 func Message(err error, depthArg ...int) string {
+	type causer interface {
+		Cause() error
+	}
+	type causerWithMessage interface {
+		Cause() error
+		Message() string
+	}
+
 	depth := 0
 	if len(depthArg) > 0 {
 		depth = depthArg[0]
@@ -266,16 +265,25 @@ func Message(err error, depthArg ...int) string {
 
 	msg := ""
 
+loop:
 	for ; err != nil; depth-- {
+		switch xerr := err.(type) {
+		case causerWithMessage:
+			if xerr.Message() != "" {
+				msg += ": " + xerr.Message()
+			}
 
-		xerr, ok := err.(xerror)
-		if !ok {
+			err = xerr.Cause()
+
+		case causer:
+			// Errors with stack traces are wrapped twice (once in withMessage and once in withStack)
+			// Here we skip the withStack wrap because the message is contained in the withMessage wrap
+			depth++
+			err = xerr.Cause()
+
+		default:
 			msg += ": " + err.Error()
-			break
-		}
-
-		if xerr.Message() != "" {
-			msg += ": " + xerr.Message()
+			break loop
 		}
 
 		// If depth is less than 1, we keep going until we reach the root cause
@@ -283,8 +291,6 @@ func Message(err error, depthArg ...int) string {
 		if depth == 1 {
 			break
 		}
-
-		err = xerr.Cause()
 	}
 
 	if msg != "" {
