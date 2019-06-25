@@ -102,7 +102,10 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	if opts.expandEnv {
 		for _, k := range opts.viper.AllKeys() {
 			value := opts.viper.Get(k)
-			if _, ok := value.(string); ok {
+			if valueStr, ok := value.(string); ok {
+				//FIXME: hack to fix an issue when value starts with '$.'
+				if len(valueStr) >= 2 && valueStr[:2] == "$." { continue }
+
 				opts.viper.Set(k, os.ExpandEnv(opts.viper.GetString(k)))
 			}
 		}
