@@ -35,12 +35,12 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	toml "github.com/BurntSushi/toml"
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/printer"
 	"github.com/magiconair/properties"
 	"github.com/mitchellh/mapstructure"
-	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
@@ -1371,13 +1371,9 @@ func (v *Viper) unmarshalReader(in io.Reader, c map[string]interface{}) error {
 		}
 
 	case "toml":
-		tree, err := toml.LoadReader(buf)
+		_, err := toml.DecodeReader(buf, &c)
 		if err != nil {
 			return ConfigParseError{err}
-		}
-		tmap := tree.ToMap()
-		for k, v := range tmap {
-			c[k] = v
 		}
 
 	case "properties", "props", "prop":
@@ -1448,12 +1444,8 @@ func (v *Viper) marshalWriter(f afero.File, configType string) error {
 		}
 
 	case "toml":
-		t, err := toml.TreeFromMap(c)
+		err := toml.NewEncoder(f).Encode(c)
 		if err != nil {
-			return ConfigMarshalError{err}
-		}
-		s := t.String()
-		if _, err := f.WriteString(s); err != nil {
 			return ConfigMarshalError{err}
 		}
 

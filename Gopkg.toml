@@ -27,8 +27,8 @@
   
 [[constraint]]
   name = "github.com/spf13/viper"
-  branch = "master"
-  source = "github.com/knadh/viper"
+  branch = "knadhmaster"
+  source = "github.com/unchainio/viper"
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"
