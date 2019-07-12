@@ -10,14 +10,6 @@
   revision = "eb2c6b5be1b66bab83016e0b05f01b8d5496ffbd"
 
 [[projects]]
-  digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
-  name = "github.com/burntsushi/toml"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
-  version = "v0.3.1"
-
-[[projects]]
   digest = "1:d976f75bc1bc6cdbef99ae503e713f753d98d9effb9e278701956ee34cee1b33"
   name = "github.com/coreos/etcd"
   packages = [
@@ -131,6 +123,14 @@
   version = "v1.1.2"
 
 [[projects]]
+  digest = "1:93131d8002d7025da13582877c32d1fc302486775a1b06f62241741006428c5e"
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "728039f679cbcd4f6a54e080d2219a4c4928c546"
+  version = "v1.4.0"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -191,32 +191,21 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a296f3b259f3beb0d5dad3fa799dd999bb60e1cf9ce76d0161f4f99816690882"
+  digest = "1:04549fe3d46e5aab2256d8a8e3d6b64c574f84e86157f30e4c2affbe436228a1"
   name = "github.com/spf13/viper"
   packages = [
     ".",
     "remote",
   ]
   pruneopts = "UT"
-  revision = "528bb28724c9d63be7ed1ebade1f851473f4b5c5"
-  source = "github.com/unchainio/viper"
+  revision = "e393435cb0bef7cf3f0ef502cabc798463487f95"
+  source = "github.com/knadh/viper"
 
 [[projects]]
-  digest = "1:ac83cf90d08b63ad5f7e020ef480d319ae890c208f8524622a2f3136e2686b02"
-  name = "github.com/stretchr/objx"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
-  version = "v0.1.1"
-
-[[projects]]
-  digest = "1:1f21c1e22015467149e1e09a8a0bf15975165cd051927c0fc356130f144479a0"
+  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
   name = "github.com/stretchr/testify"
   packages = [
-    ".",
     "assert",
-    "http",
-    "mock",
     "require",
   ]
   pruneopts = "UT"
@@ -333,7 +322,6 @@
     "github.com/sirupsen/logrus",
     "github.com/spf13/viper",
     "github.com/spf13/viper/remote",
-    "github.com/stretchr/testify",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/unchainio/interfaces/logger",

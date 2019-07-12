@@ -22,7 +22,10 @@ type Info struct {
 
 func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	var err error
-	opts := &Options{}
+	opts := &Options{
+		expandFn:        os.Expand,
+		expandMappingFn: os.Getenv,
+	}
 
 	for _, optFunc := range optFuncs {
 		err = optFunc(opts)
@@ -41,7 +44,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 	}
 
 	if opts.caseSensitive {
-		opts.viper.SetCaseSensitive(opts.caseSensitive)
+		opts.viper.SetKeysCaseSensitive(opts.caseSensitive)
 	}
 
 	if opts.pathFlag != nil {
@@ -103,7 +106,7 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 		for _, k := range opts.viper.AllKeys() {
 			value := opts.viper.Get(k)
 			if _, ok := value.(string); ok {
-				opts.viper.Set(k, os.ExpandEnv(opts.viper.GetString(k)))
+				opts.viper.Set(k, opts.expandFn(opts.viper.GetString(k), opts.expandMappingFn))
 			}
 		}
 	}
@@ -124,11 +127,14 @@ func Load(cfg interface{}, optFuncs ...OptionFunc) error {
 type OptionFunc func(*Options) error
 
 type Options struct {
-	expandEnv bool
-	info      *Info
-	watchFn   func(in fsnotify.Event)
-	pathFlag  *flag.Flag
-	paths     []string
+	expandEnv       bool
+	expandMappingFn func(string) string
+	expandFn        func(s string, mapping func(string) string) string
+
+	info     *Info
+	watchFn  func(in fsnotify.Event)
+	pathFlag *flag.Flag
+	paths    []string
 
 	cfgType string
 	readers []io.Reader
@@ -148,6 +154,20 @@ type remoteConfig struct {
 func ExpandEnv() OptionFunc {
 	return func(o *Options) error {
 		o.expandEnv = true
+		return nil
+	}
+}
+
+func WithExpandFn(fn func(s string, mapping func(string) string) string) OptionFunc {
+	return func(o *Options) error {
+		o.expandFn = fn
+		return nil
+	}
+}
+
+func WithExpandMappingFn(fn func(string) string) OptionFunc {
+	return func(o *Options) error {
+		o.expandMappingFn = fn
 		return nil
 	}
 }
