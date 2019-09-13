@@ -162,6 +162,9 @@ type withStack struct {
 
 func (w *withStack) Cause() error { return w.error }
 
+// Unwrap provides compatibility for Go 1.13 error chains.
+func (w *withStack) Unwrap() error { return w.error }
+
 func (w *withStack) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
@@ -231,6 +234,10 @@ type withMessage struct {
 
 func (w *withMessage) Error() string { return w.msg + ": " + w.cause.Error() }
 func (w *withMessage) Cause() error  { return w.cause }
+
+// Unwrap provides compatibility for Go 1.13 error chains.
+func (w *withMessage) Unwrap() error { return w.cause }
+
 func (w *withMessage) Message() string {
 	return w.msg
 }
