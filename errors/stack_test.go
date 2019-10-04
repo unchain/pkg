@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"testing"
@@ -187,10 +188,9 @@ func TestStackTrace(t *testing.T) {
 		},
 	}}
 	for i, tt := range tests {
-		x, ok := tt.err.(interface {
-			StackTrace() StackTrace
-		})
-		if !ok {
+		var x stackTracer
+
+		if !errors.As(tt.err, &x) {
 			t.Errorf("expected %#v to implement StackTrace() StackTrace", tt.err)
 			continue
 		}

@@ -92,6 +92,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -185,17 +186,11 @@ func (w *withStack) Format(s fmt.State, verb rune) {
 // at the point Wrap is called, and the supplied message.
 // If err is nil, Wrap returns nil.
 func Wrap(err error, message string) error {
-	if err == nil {
-		return nil
-	}
-	err = &withMessage{
-		cause: err,
-		msg:   message,
-	}
-	return &withStack{
-		err,
-		callers(),
-	}
+	return Wrapf(err, "%s", message)
+}
+
+type stackTracer interface {
+	StackTrace() StackTrace
 }
 
 // Wrapf returns an error annotating err with a stack trace
@@ -205,10 +200,19 @@ func Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
 	}
+
 	err = &withMessage{
 		cause: err,
 		msg:   fmt.Sprintf(format, args...),
 	}
+
+	// If there already is a stacktrace, return the error wrapped with the new message
+	var stackTrace stackTracer
+	if errors.As(err, &stackTrace) {
+		return err
+	}
+
+	// If there is no stacktrace, add it
 	return &withStack{
 		err,
 		callers(),
