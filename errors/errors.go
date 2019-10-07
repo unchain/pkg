@@ -186,7 +186,26 @@ func (w *withStack) Format(s fmt.State, verb rune) {
 // at the point Wrap is called, and the supplied message.
 // If err is nil, Wrap returns nil.
 func Wrap(err error, message string) error {
-	return Wrapf(err, "%s", message)
+	if err == nil {
+		return nil
+	}
+
+	err = &withMessage{
+		cause: err,
+		msg:   message,
+	}
+
+	// If there already is a stacktrace, return the error wrapped with the new message
+	var stackTrace stackTracer
+	if errors.As(err, &stackTrace) {
+		return err
+	}
+
+	// If there is no stacktrace, add it
+	return &withStack{
+		err,
+		callers(),
+	}
 }
 
 type stackTracer interface {
